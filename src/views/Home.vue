@@ -99,12 +99,7 @@ export default {
         }
       },
       chatList: [
-        { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: '您好，jiqiren' },
-        { type: 'user', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: 'user，sss' },
-        { type: 'system', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: '您好，sss' },
-        { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: '您好，jiqiren' },
-        { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: '您好，jiqiren' },
-        { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: '您好，jiqiren' }
+        // { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: '中公小鹿客服', msg: '您好，jiqiren' }
       ],
       msg: '',
       chatItem: { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: '您好，jiqire您好，jiqire您好，jiqireqiren' }
@@ -122,17 +117,26 @@ export default {
       if (!this.msg) {
         return
       }
-      i++
+      // i++
       this.chatList.push({ type: i % 3 ? i % 3 === 1 ? 'robote' : 'system' : 'user', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: this.msg + (i) })
       this.msg = ''
+      setTimeout(() => {
+        this.scrollTo(true)
+      }, 50)
+    },
+    addChatObj (msg) {
+      this.chatList.push(msg)
       setTimeout(() => {
         this.scrollTo(true)
       }, 50)
     }
   },
   mounted () {
+    console.log('home')
     this.scrollTo(false)
-    console.log(uuid(10, 64))
+    this.addChatObj(
+      { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: '中公小鹿客服', msg: '您好，中公' + uuid(10, 64) }
+    )
   }
 }
 </script>

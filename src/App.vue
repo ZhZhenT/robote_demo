@@ -19,7 +19,7 @@
 export default {
   name: 'app',
   mounted () {
-    console.log('app')
+
   }
 }
 </script>
