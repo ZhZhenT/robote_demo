@@ -5,10 +5,12 @@ import store from './store'
 import './assets/base.css'
 import vuescroll from 'vuescroll'
 import 'vuescroll/dist/vuescroll.css'
+import axios from 'axios'
 
 Vue.config.productionTip = false
 
 Vue.use(vuescroll)
+Vue.prototype.$http = axios
 
 new Vue({
   router,

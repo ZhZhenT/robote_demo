@@ -1,24 +1,47 @@
 <template>
-  <div class="home">
+  <div @click="clickCb" class="home">
 
     <div class="dialog-wrap">
 
         <vue-scroll  :ops="ops1" ref="vs" >
             <div class="content">
-              <transition-group name="list" tag="p">
+              <transition-group name="list" tag="div">
                 <div v-for="(item, index) in chatList" :key="index + 1">
+
+                  <div >
+                    <span  v-if="index">
+                    <span style="text-align: center;font-size: 26px;color: #b2b2b2;padding: 20px 0 10px;display: block" v-if="item.time - chatList[index-1].time > 1*60*1000">
+                     {{item.time | formatDate1}}
+                    </span>
+                    </span>
+                    <span style="text-align: center;font-size: 26px;color: #b2b2b2;padding: 20px 0 10px;display: block" v-else>{{item.time | formatDate1}}</span>
+                  </div>
+
                   <div v-if="item.type == 'robote' ||item.type== 'user' "  :class="['message-item', {'message-send':item.type== 'user','message-receive':item.type== 'robote' }]">
                     <div class="avatar">
                       <img :src="item.avatar" alt="">
                     </div>
+
                     <div class="msg-text">
                       <div class="name">{{item.name}}</div>
-                      <p>{{item.msg}}</p>
+
+                      <div>
+                        <p  v-if = "item.msgtype === 1">
+                          <span style="display: inline-block;padding: 10px 0">您是想问这些问题吗？<br></span>
+                          <span style="display: inline-block;padding: 10px 0" @click="sysChat(m)" class="blue" v-for="(m,i) in item.msg" :key="i">{{i + 1 + '.'}}{{m}}? <br></span>
+                        </p>
+                        <p v-else v-html="item.msg">
+
+                        </p>
+                      </div>
                     </div>
+
                   </div>
+
                   <div v-else-if ="item.type == 'system'" class="message-item message-system">
                     <span>system</span>
                   </div>
+
                 </div>
               </transition-group>
             </div>
@@ -28,7 +51,7 @@
 
     <div class="footer">
       <div class="input">
-        <textarea v-model="msg" name="" id="" rows="1"></textarea>
+        <textarea @focus="focus($event)" @blur="fixScroll" v-model="msg" name="" id="" rows="1"></textarea>
       </div>
       <div :class="['send_btn', {canSend: msg}]" @click="addChat">
           发送
@@ -39,7 +62,7 @@
 </template>
 
 <script>
-let i = 0
+
 function uuid (len, radix) {
   var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
   var uuid = []
@@ -81,14 +104,17 @@ export default {
             bouncing: {
               top: 100000,
               bottom: 100000
-            }
-
-          }
+            },
+            minZoom: 1,
+            maxZoom: 1
+          },
+          zooming: false
         },
         scrollPanel: {
           padding: false,
           scrollingX: false
         },
+
         rail: {
 
         },
@@ -102,10 +128,18 @@ export default {
         // { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: '中公小鹿客服', msg: '您好，jiqiren' }
       ],
       msg: '',
+      id: uuid(6, 64),
+      timer: null,
       chatItem: { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: '您好，jiqire您好，jiqire您好，jiqireqiren' }
     }
   },
   methods: {
+    clickCb () {
+
+    },
+    focus (ev) {
+      ev.target.scrollIntoView()
+    },
     scrollTo (flag) {
       this.$nextTick(() => {
         this.$refs['vs'].scrollTo({
@@ -113,30 +147,66 @@ export default {
         }, flag)
       })
     },
+    fixScroll () {
+      window.scroll(0, 0)
+    },
+    search (msg) {
+      this.$http({
+        method: 'get',
+        url: 'http://39.98.85.56:8080/robot/chat?chat=' + msg,
+        headers: { 'Content-type': 'application/json' }
+      })
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.addChatObj({ type: 'robote', msgtype: res.data.value.type, avatar: process.env.BASE_URL + 'images/robote_avatar.png', name: '中公小知客服', msg: res.data.value.value, time: new Date().getTime() })
+          }
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    },
     addChat () {
       if (!this.msg) {
         return
       }
-      // i++
-      this.chatList.push({ type: i % 3 ? i % 3 === 1 ? 'robote' : 'system' : 'user', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: 'IDxxxx', msg: this.msg + (i) })
+      this.addChatObj({ type: 'user', avatar: process.env.BASE_URL + 'images/user_avatar.png', name: '中公' + this.id, msg: this.msg, time: new Date().getTime() })
+      this.search(this.msg)
       this.msg = ''
-      setTimeout(() => {
-        this.scrollTo(true)
-      }, 50)
+    },
+    sysChat (msg) {
+      this.addChatObj({ type: 'user', avatar: process.env.BASE_URL + 'images/user_avatar.png', name: '中公' + this.id, msg: msg, time: new Date().getTime() })
+      this.search(msg)
     },
     addChatObj (msg) {
       this.chatList.push(msg)
-      setTimeout(() => {
+      clearInterval(this.timer)
+      this.timer = setTimeout(() => {
         this.scrollTo(true)
-      }, 50)
+      }, 500)
+    }
+  },
+  filters: {
+    formatDate1 (val) {
+      let date = new Date(val)
+
+      function formatNumber (n) {
+        n = n.toString()
+        return n[1] ? n : '0' + n
+      }
+
+      var a = formatNumber(date.getMinutes())
+
+      // return (date.getFullYear()) + '年' + (date.getMonth() + 1) + '月' + date.getDate() + '日 ' + date.getHours() + ':' + a
+      return date.getHours() + ':' + a
     }
   },
   mounted () {
     console.log('home')
     this.scrollTo(false)
     this.addChatObj(
-      { type: 'robote', avatar: process.env.BASE_URL + 'images/touxiangm.png', name: '中公小鹿客服', msg: '您好，中公' + uuid(10, 64) }
+      { type: 'robote', avatar: process.env.BASE_URL + 'images/robote_avatar.png', name: '中公小知客服', msg: '您好，我是中公小知，很高兴为您服务。', time: new Date().getTime() }
     )
+    // this.search('相似')
   }
 }
 </script>
@@ -144,19 +214,21 @@ export default {
 <style lang="less">
   body {
     margin: 0 auto;
-    background: #f1f1f1;
+    background: #EFEFF4;
   }
+
   .home{
     height: 100%;
+    position: relative;
   }
   .dialog-wrap{
-    background: #f1f1f1;
-    position: fixed;
+    background: #EEEDEE;
+    position: absolute;
     left: 0;
     right: 0;
-    bottom: 80px;
-    top: -20px;
-    padding: 20px 0;
+    bottom: 100px;
+    top: 0;
+    padding: 0 0;
   }
   .message-item{
     display: flex;
@@ -165,7 +237,7 @@ export default {
   .message-item .avatar{
     width: 80px;
     height: 80px;
-    margin-top: 15px;
+    margin-top: 5px;
     border-radius: 5px;
   }
   .message-item .avatar img{
@@ -175,28 +247,41 @@ export default {
   }
   .message-item .msg-text p{
     border-radius: 10px;
-    line-height: 60px;
+    line-height: 1.3;
     background: #fff;
-    padding: 10px 20px;
-    margin:5px 10px 20px 40px;
+    padding: 16px 24px;
+    margin:5px 97px 20px 18px;
     text-align: justify;
     position: relative;
+    min-height: 61px;
+    display: inline-block;
+    word-break:break-all
+  }
+  .message-send .msg-text{
+    text-align: right;
+  }
+  .message-item .msg-text p span.blue{
+    color: #4898fc;
+  }
+  .message-item .msg-text p a{
+    color: #4898fc;
+    text-decoration: underline;
   }
   .message-receive .msg-text p:after{
     content: '';
     width: 0;
     height: 0;
-    border-top: 15px solid transparent;
-    border-bottom: 15px solid transparent;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
     position: absolute;
     top: 12px;
-    border-right: 40px solid #fff;
-    left: -30px;
+    border-right: 10px solid #fff;
+    left: -10px;
   }
   .message-item .msg-text .name{
-    font-size: 22px;
-    padding-left: 45px;
-    color: #ccc;
+    font-size: 24px;
+    padding-left: 18px;
+    color: #b2b2b2;
   }
   .message-send{
     justify-content: flex-end;
@@ -209,21 +294,22 @@ export default {
   }
   .message-send .msg-text .name{
     text-align: right;
-    padding-right: 45px;
+    padding-right: 18px;
   }
   .message-send .msg-text p{
-    margin:5px 40px 20px 10px;
+    margin:5px 16px 20px 96px;
+    background: #A0EA71;
   }
   .message-send .msg-text p:after{
     content: '';
     width: 0;
     height: 0;
-    border-top: 15px solid transparent;
-    border-bottom: 15px solid transparent;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
     position: absolute;
     top: 12px;
-    border-left: 40px solid #fff;
-    right: -30px;
+    border-left: 10px solid #A0EA71;
+    right: -10px;
   }
 .message-system {
   text-align: center;
@@ -267,7 +353,7 @@ export default {
     background-color: #fff;
     height: 100px;
     width: 100%;
-    border-top: 1px solid #ddd;
+    //border-top: 1px solid #ddd;
     display: flex;
     align-items: center;
     justify-content: space-around;
@@ -281,6 +367,9 @@ export default {
         box-sizing: border-box;
         padding: 12px 0 0 10px;
         border-radius:5px;
+        border: 1px solid #E6E6EA;
+        outline: none;
+        caret-color:#4898fc;
       }
     }
     .send_btn{
@@ -289,7 +378,7 @@ export default {
       line-height: 70px;
       color: #fff;
       text-align: center;
-      background-color: #ddd;
+      background-color: #E6E6EA;
       border-radius:5px;
       transition: .2s;
     }
