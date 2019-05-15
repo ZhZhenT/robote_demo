@@ -153,7 +153,7 @@ export default {
     search (msg) {
       this.$http({
         method: 'get',
-        url: 'http://39.98.183.92:8080/robot/chat?chat=' + msg,
+        url: 'http://39.98.196.178:8080/robot/chat?chat=' + msg,
         headers: { 'Content-type': 'application/json' }
       })
         .then((res) => {
